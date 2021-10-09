@@ -17,6 +17,10 @@ func main() {
 	HandleUserRequests()
 }
 
+func notFoundHandler(w http.ResponseWriter) {
+	w.Write([]byte("404 - The page does not exist or has been moved."))
+}
+
 type User struct {
 	Id       string `json:"id"`
 	Name     string `json:"name"`
@@ -26,6 +30,15 @@ type User struct {
 
 var user User
 
+type Post struct {
+	Id        string `json:"id"`
+	Caption   string `json:"caption"`
+	Image_URL string `json:"imageUrl"`
+	Timestamp string `json:"timestamp"`
+}
+
+var posts Post
+
 func HandleUserRequests() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/users", CreateUser)
@@ -34,6 +47,7 @@ func HandleUserRequests() {
 	mux.HandleFunc("/posts/", GetPostById)
 	mux.HandleFunc("/posts/users/", GetAllPostsOfUser)
 	log.Fatal(http.ListenAndServe(":80", mux))
+
 }
 
 // Create User: POST
@@ -76,19 +90,14 @@ func GetUserByID(w http.ResponseWriter, req *http.Request) {
 	if httpStatus == "GET" {
 		w.Header().Set("Content-Type", "application/json")
 		docId, _ := primitive.ObjectIDFromHex(id)
-		val := mongoOps.FindDocument("users", docId)
-		json.NewEncoder(w).Encode(val)
+		user := mongoOps.FindDocument("users", docId)
+		if user == nil {
+			notFoundHandler(w)
+		}
+		json.NewEncoder(w).Encode(user)
+
 	}
 }
-
-type Post struct {
-	Id        string `json:"id"`
-	Caption   string `json:"caption"`
-	Image_URL string `json:"imageUrl"`
-	Timestamp string `json:"timestamp"`
-}
-
-var posts Post
 
 // Create a Post : POST
 func CreatePost(w http.ResponseWriter, req *http.Request) {
@@ -127,7 +136,11 @@ func GetPostById(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		docId, _ := primitive.ObjectIDFromHex(postId)
 		userPost := mongoOps.FindDocument("posts", docId)
+		if userPost == nil {
+			notFoundHandler(w)
+		}
 		json.NewEncoder(w).Encode(userPost)
+
 	}
 }
 
@@ -141,6 +154,10 @@ func GetAllPostsOfUser(w http.ResponseWriter, req *http.Request) {
 	if httpStatus == "GET" {
 		w.Header().Set("Content-Type", "application/json")
 		posts := mongoOps.GetAllUserPosts(userId)
+		if posts == nil {
+			notFoundHandler(w)
+		}
 		json.NewEncoder(w).Encode(posts)
+
 	}
 }

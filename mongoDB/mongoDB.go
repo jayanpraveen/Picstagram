@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -34,7 +33,7 @@ func InsertDocument(collName string, bsonValue bson.D) {
 	log.Println(res.InsertedID)
 
 	if err != nil {
-		log.Panic(err)
+		log.Println(err)
 	}
 }
 
@@ -46,7 +45,7 @@ func FindDocument(collName string, docId primitive.ObjectID) primitive.M {
 
 	var bson_obj bson.M
 	if err2 := findone_result.Decode(&bson_obj); err2 != nil {
-		fmt.Println(err2)
+		log.Println(err2)
 	}
 	return bson_obj
 
@@ -60,12 +59,11 @@ func GetAllUserPosts(userId string) []primitive.M {
 
 	filterCursor, err := collection.Find(context.TODO(), bson.M{"id": userId})
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	var bson_objs []bson.M
 	if err = filterCursor.All(context.TODO(), &bson_objs); err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
-	fmt.Println(bson_objs)
 	return bson_objs
 }
