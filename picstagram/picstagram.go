@@ -79,7 +79,6 @@ func GetUserByID(w http.ResponseWriter, req *http.Request) {
 		val := mongoOps.FindDocument("users", docId)
 		json.NewEncoder(w).Encode(val)
 	}
-
 }
 
 type Post struct {
@@ -127,10 +126,9 @@ func GetPostById(w http.ResponseWriter, req *http.Request) {
 	if httpStatus == "GET" {
 		w.Header().Set("Content-Type", "application/json")
 		docId, _ := primitive.ObjectIDFromHex(postId)
-		val := mongoOps.FindDocument("posts", docId)
-		json.NewEncoder(w).Encode(val)
+		userPost := mongoOps.FindDocument("posts", docId)
+		json.NewEncoder(w).Encode(userPost)
 	}
-
 }
 
 // List all posts of a user : GET
@@ -142,7 +140,7 @@ func GetAllPostsOfUser(w http.ResponseWriter, req *http.Request) {
 
 	if httpStatus == "GET" {
 		w.Header().Set("Content-Type", "application/json")
-		val := mongoOps.GetAllUserPosts(userId)
-		json.NewEncoder(w).Encode(val)
+		posts := mongoOps.GetAllUserPosts(userId)
+		json.NewEncoder(w).Encode(posts)
 	}
 }
