@@ -3,6 +3,13 @@
 - Run `picstagram.go` to expose rest apis' @ localhost:80, this requires a local mongodb instance running @ port `27017`
 - Tests are located at [gotest](./gotest/endpoints_test.go)
 
+## End points
+ - Create a user: http://localhost/users 
+ - Get user with Id: http://localhost/users/:id 
+ - Create a post: http://localhost/posts 
+ - Get post with Id: http://localhost/posts/:id 
+ - List all posts of user: http://localhost/posts/users/:id
+
 ## File structure
 
 ```
