@@ -1,0 +1,11 @@
+User:
+	Id
+	Name
+	Email
+	Password
+
+Posts
+	Id
+	Caption
+	Image URL
+	Posted Timestamp
