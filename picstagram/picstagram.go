@@ -20,12 +20,9 @@ func makeConn() *mongo.Client {
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 
-	collection := client.Database("picstagram").Collection("collectionName")
+	client.Database("picstagram").Collection("collectionName")
 
-	res, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
-
-	id := res.InsertedID
-	log.Println(id)
+	// res, err := collection.InsertOne(ctx, bson.D{{"title", "Invisible Cities"}, {"author", "Italo Calvino"}})
 
 	defer func() {
 		if err = client.Disconnect(ctx); err != nil {
@@ -35,12 +32,11 @@ func makeConn() *mongo.Client {
 	return client
 }
 
-func insertOneDocument(collName string, bsonValue bson.M) {
+func insertDocument(collName string, bsonValue bson.D) {
 	val := makeConn()
 	col := val.Database("picstagram").Collection(collName)
 	res, err := col.InsertOne(context.TODO(), bsonValue)
-	id := res.InsertedID
-	log.Println(id)
+	log.Println(res.InsertedID)
 	log.Panic(err)
 }
 
@@ -74,8 +70,15 @@ func CreateUser(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(user)
-		fmt.Println(user.Id)
+
+		val := bson.D{
+			{Key: "id", Value: user.Id},
+			{Key: "name", Value: user.Name},
+			{Key: "email", Value: user.Email},
+			{Key: "password", Value: user.Password},
+		}
+		insertDocument("users", val)
+		fmt.Println(val)
 	}
 
 }
