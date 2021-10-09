@@ -1,13 +1,48 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+func makeConn() *mongo.Client {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+
+	collection := client.Database("picstagram").Collection("collectionName")
+
+	res, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
+
+	id := res.InsertedID
+	log.Println(id)
+
+	defer func() {
+		if err = client.Disconnect(ctx); err != nil {
+			panic(err)
+		}
+	}()
+	return client
+}
+
+func insertOneDocument(collName string, bsonValue bson.M) {
+	val := makeConn()
+	col := val.Database("picstagram").Collection(collName)
+	res, err := col.InsertOne(context.TODO(), bsonValue)
+	id := res.InsertedID
+	log.Println(id)
+	log.Panic(err)
+}
 
 type User struct {
 	Id       string `json:"id"`
@@ -24,6 +59,7 @@ func HandleUserRequests() {
 	mux.HandleFunc("/users/", GetUserByID)
 	mux.HandleFunc("/posts", CreatePost)
 	mux.HandleFunc("/posts/", GetPostById)
+	mux.HandleFunc("/posts/users/", GetAllPostsOfUser)
 	log.Fatal(http.ListenAndServe(":80", mux))
 }
 
@@ -97,6 +133,19 @@ func GetPostById(w http.ResponseWriter, req *http.Request) {
 		fmt.Println(postId)
 	}
 
+}
+
+// List all posts of a user : GET
+func GetAllPostsOfUser(w http.ResponseWriter, req *http.Request) {
+
+	userId := strings.Split(req.URL.Path, "/")[3]
+
+	httpStatus := req.Method
+
+	if httpStatus == "GET" {
+		fmt.Println(userId)
+		fmt.Println("print all users")
+	}
 }
 
 func main() {
