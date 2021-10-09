@@ -10,12 +10,13 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func openMongoConnection() *mongo.Client {
+func mongoConnection() *mongo.Client {
 
 	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
 	client, err := mongo.Connect(context.TODO(), clientOptions)
@@ -31,7 +32,7 @@ func openMongoConnection() *mongo.Client {
 }
 
 func insertDocument(collName string, bsonValue bson.D) {
-	client := openMongoConnection()
+	client := mongoConnection()
 	collection := client.Database("picstagram").Collection(collName)
 	res, err := collection.InsertOne(context.TODO(), bsonValue)
 
@@ -41,6 +42,19 @@ func insertDocument(collName string, bsonValue bson.D) {
 	if err != nil {
 		log.Panic(err)
 	}
+}
+
+func findDocument(collName string, docId primitive.ObjectID) primitive.M {
+	client := mongoConnection()
+	collection := client.Database("picstagram").Collection(collName)
+
+	findone_result := collection.FindOne(context.TODO(), bson.M{"_id": docId})
+
+	var bson_obj bson.M
+	if err2 := findone_result.Decode(&bson_obj); err2 != nil {
+		fmt.Println(err2)
+	}
+	return bson_obj
 
 }
 
@@ -101,8 +115,10 @@ func GetUserByID(w http.ResponseWriter, req *http.Request) {
 	httpStatus := req.Method
 
 	if httpStatus == "GET" {
-		// search
-		fmt.Println(id)
+		w.Header().Set("Content-Type", "application/json")
+		docId, _ := primitive.ObjectIDFromHex(id)
+		val := findDocument("users", docId)
+		json.NewEncoder(w).Encode(val)
 	}
 
 }
@@ -150,7 +166,10 @@ func GetPostById(w http.ResponseWriter, req *http.Request) {
 	httpStatus := req.Method
 
 	if httpStatus == "GET" {
-		fmt.Println(postId)
+		w.Header().Set("Content-Type", "application/json")
+		docId, _ := primitive.ObjectIDFromHex(postId)
+		val := findDocument("posts", docId)
+		json.NewEncoder(w).Encode(val)
 	}
 
 }
