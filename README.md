@@ -1,6 +1,10 @@
 # Picstagram
 
-- Run `picstagram.go` to expose rest apis' @ localhost:80, this requires a local mongodb instance running @ port `27017`
+- Run [`picstagram.go`](./picstagram/picstagram.go) to expose rest apis' @ localhost:80, this requires a local mongodb instance running @ port `27017`
+```go
+go run picstagram.go
+``` 
+
 - Tests are located at [gotest](./gotest/endpoints_test.go)
 
 ## End points
