@@ -1,61 +1,20 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	mongoOps "example.com/mongoDB"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func mongoConnection() *mongo.Client {
-
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
-	client, err := mongo.Connect(context.TODO(), clientOptions)
-	if err != nil {
-		log.Panic(err)
-	}
-	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		log.Panic(err)
-	}
-	fmt.Println("Connected to MongoDB!")
-	return client
-}
-
-func insertDocument(collName string, bsonValue bson.D) {
-	client := mongoConnection()
-	collection := client.Database("picstagram").Collection(collName)
-	res, err := collection.InsertOne(context.TODO(), bsonValue)
-
-	log.SetPrefix("response id: ")
-	log.Println(res.InsertedID)
-
-	if err != nil {
-		log.Panic(err)
-	}
-}
-
-func findDocument(collName string, docId primitive.ObjectID) primitive.M {
-	client := mongoConnection()
-	collection := client.Database("picstagram").Collection(collName)
-
-	findone_result := collection.FindOne(context.TODO(), bson.M{"_id": docId})
-
-	var bson_obj bson.M
-	if err2 := findone_result.Decode(&bson_obj); err2 != nil {
-		fmt.Println(err2)
-	}
-	return bson_obj
-
+func main() {
+	HandleUserRequests()
 }
 
 type User struct {
@@ -103,7 +62,7 @@ func CreateUser(w http.ResponseWriter, req *http.Request) {
 			{Key: "password", Value: hashedPassword},
 		}
 
-		insertDocument("users", userData)
+		mongoOps.InsertDocument("users", userData)
 	}
 
 }
@@ -117,7 +76,7 @@ func GetUserByID(w http.ResponseWriter, req *http.Request) {
 	if httpStatus == "GET" {
 		w.Header().Set("Content-Type", "application/json")
 		docId, _ := primitive.ObjectIDFromHex(id)
-		val := findDocument("users", docId)
+		val := mongoOps.FindDocument("users", docId)
 		json.NewEncoder(w).Encode(val)
 	}
 
@@ -153,7 +112,7 @@ func CreatePost(w http.ResponseWriter, req *http.Request) {
 			{Key: "timestamp", Value: posts.Timestamp},
 		}
 
-		insertDocument("posts", postData)
+		mongoOps.InsertDocument("posts", postData)
 
 	}
 }
@@ -168,7 +127,7 @@ func GetPostById(w http.ResponseWriter, req *http.Request) {
 	if httpStatus == "GET" {
 		w.Header().Set("Content-Type", "application/json")
 		docId, _ := primitive.ObjectIDFromHex(postId)
-		val := findDocument("posts", docId)
+		val := mongoOps.FindDocument("posts", docId)
 		json.NewEncoder(w).Encode(val)
 	}
 
@@ -182,11 +141,8 @@ func GetAllPostsOfUser(w http.ResponseWriter, req *http.Request) {
 	httpStatus := req.Method
 
 	if httpStatus == "GET" {
-		fmt.Println(userId)
-		fmt.Println("print all users")
+		w.Header().Set("Content-Type", "application/json")
+		val := mongoOps.GetAllUserPosts(userId)
+		json.NewEncoder(w).Encode(val)
 	}
-}
-
-func main() {
-	HandleUserRequests()
 }
