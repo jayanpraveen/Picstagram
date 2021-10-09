@@ -12,32 +12,36 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
 )
 
-func makeConn() *mongo.Client {
+func openMongoConnection() *mongo.Client {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
-
-	client.Database("picstagram").Collection("collectionName")
-
-	// res, err := collection.InsertOne(ctx, bson.D{{"title", "Invisible Cities"}, {"author", "Italo Calvino"}})
-
-	defer func() {
-		if err = client.Disconnect(ctx); err != nil {
-			panic(err)
-		}
-	}()
+	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		log.Panic(err)
+	}
+	err = client.Ping(context.TODO(), nil)
+	if err != nil {
+		log.Panic(err)
+	}
+	fmt.Println("Connected to MongoDB!")
 	return client
 }
 
 func insertDocument(collName string, bsonValue bson.D) {
-	val := makeConn()
-	col := val.Database("picstagram").Collection(collName)
-	res, err := col.InsertOne(context.TODO(), bsonValue)
+	client := openMongoConnection()
+	collection := client.Database("picstagram").Collection(collName)
+	res, err := collection.InsertOne(context.TODO(), bsonValue)
+
+	log.SetPrefix("response id: ")
 	log.Println(res.InsertedID)
-	log.Panic(err)
+
+	if err != nil {
+		log.Panic(err)
+	}
+
 }
 
 type User struct {
@@ -71,14 +75,21 @@ func CreateUser(w http.ResponseWriter, req *http.Request) {
 			log.Fatal(err)
 		}
 
-		val := bson.D{
+		password, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.MinCost)
+		// race contd
+		if err != nil {
+			log.Fatal("internal error!")
+		}
+		hashedPassword := string(password)
+
+		userData := bson.D{
 			{Key: "id", Value: user.Id},
 			{Key: "name", Value: user.Name},
 			{Key: "email", Value: user.Email},
-			{Key: "password", Value: user.Password},
+			{Key: "password", Value: hashedPassword},
 		}
-		insertDocument("users", val)
-		fmt.Println(val)
+
+		insertDocument("users", userData)
 	}
 
 }
@@ -119,9 +130,15 @@ func CreatePost(w http.ResponseWriter, req *http.Request) {
 
 		posts.Timestamp = time.Now().Format("01-02-2006 15:04:05")
 
-		fmt.Println(posts)
-		fmt.Println(posts.Timestamp)
-		fmt.Println(posts.Caption)
+		postData := bson.D{
+			{Key: "id", Value: posts.Id},
+			{Key: "caption", Value: posts.Caption},
+			{Key: "imageUrl", Value: posts.Image_URL},
+			{Key: "timestamp", Value: posts.Timestamp},
+		}
+
+		insertDocument("posts", postData)
+
 	}
 }
 
